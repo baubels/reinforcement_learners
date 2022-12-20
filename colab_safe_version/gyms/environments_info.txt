@@ -1,0 +1,18 @@
+ENVIRONMENTS INFORMATION:
+
+CARTPOLE: https://www.gymlibrary.dev/environments/classic_control/cart_pole/
+    input space: 4 (x, xdot, theta, thetadot)
+    output space: 2 (left or right)
+
+LUNDAR LANDER: https://www.gymlibrary.dev/environments/box2d/lunar_lander/
+    input space: 8
+    output space: 4 (up, down, left, right)
+
+ACROBOT: https://www.gymlibrary.dev/environments/classic_control/acrobot/
+    input space: 6 (x, xdot, theta, thetadot)
+    output space: 3 (left or right)
+
+MOUNTAINCAR: https://www.gymlibrary.dev/environments/classic_control/mountain_car/
+    input space: 2 (x, xdot, theta, thetadot)
+    output space: 3 (left or right)
+

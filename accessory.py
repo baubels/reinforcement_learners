@@ -169,7 +169,7 @@ class VideoRecorder:
                 )
 
             clip = ImageSequenceClip(self.recorded_frames, fps=self.frames_per_sec)
-            clip.write_videofile(self.path, verbose=False)
+            clip.write_videofile(self.path, verbose=False, logger=None)
         else:
             # No frames captured. Set metadata.
             if self.metadata is None:

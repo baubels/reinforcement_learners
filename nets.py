@@ -6,6 +6,8 @@ import time
 import torch
 import torch.optim as optim
 from gyms.cartpole import CartPoleEnv
+from gyms.acrobot import AcrobotEnv
+from gyms.mountain_car import MountainCarEnv
 
 
 
@@ -15,8 +17,8 @@ def train_DQN(type:str='DQN', env_name:str='CartPole', n_runs:int=10, starting_e
     
     print_training_info(type, env_name, n_runs, starting_eps, n_episodes, decay, network_layers, batch_size, buffer_size, update_when)
     runs_results = []
-    if env_name == 'CartPole':
-        env = CartPoleEnv(render_mode='rgb_array')
+
+    env = eval(env_name)(render_mode='rgb_array')
     
     # add other environment options here
 

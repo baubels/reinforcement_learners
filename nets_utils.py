@@ -137,5 +137,6 @@ def loss(policy_dqn:DQN, target_dqn:DQN,
         bellman_targets = (~dones).reshape(-1)*target_dqn(next_states).gather(1, q_max_vals).reshape(-1) + rewards.reshape(-1)
     else:
         bellman_targets = (~dones).reshape(-1)*(target_dqn(next_states)).max(1).values + rewards.reshape(-1)
+    
     q_values = policy_dqn(states).gather(1, actions).reshape(-1)
     return ((q_values - bellman_targets)**2).mean()

@@ -1,3 +1,13 @@
+"""
+File implementing:
+    `initialise_episode`: initialise an episode (pygame env instance) with a random state
+    `step_episode`: Do a step according to an epsilon-greedy policy within a pygame env instance using a DQN network.
+
+"""
+
+
+
+
 import random
 from collections import deque
 import torch
@@ -43,7 +53,6 @@ def step_episode(env, policy_net:DQN, state, eps:float, decay:float, episode:int
     reward, action = torch.tensor([reward]), torch.tensor([action])
     next_state = torch.tensor(observation).reshape(-1).float()
     return action, next_state, reward, done, terminated
-
 
 
 class ReplayBuffer():

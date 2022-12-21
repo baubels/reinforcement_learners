@@ -13,16 +13,37 @@ from gyms.mountain_car import MountainCarEnv
 
 def train_DQN(type:str='DQN', env_name:str='CartPole', n_runs:int=10, starting_eps:float=1., network_layers:list[int]=[4,2], 
         episode_print_thresh:int=150, n_episodes:int=300, buffer_size=1000, batch_size=1, update_when=1, learning_rate=1, decay=0.99,
-        recordings_dir_name:str='episode_recorder', episode_base_name:str='episode', record=False, max_episode_steps=500):
-    
+        recordings_dir_name:str='episode_recorder', episode_base_name:str='episode', record=False, max_episode_steps=None):
+    """Train a DQN or DDQN pair of networks according to some pygame env instance.
+
+    Args:
+        type (str, optional): One of `DQN` or `DDQN`. Defaults to 'DQN'.
+        env_name (str, optional): One of `CartPoleEnv`, `AcrobotEnv`, `MountainCarEnv`. Defaults to 'CartPole'. See `gyms/environment_info.txt` for usage info.
+        n_runs (int, optional): Number of runs to do the algorithm on. Defaults to 10.
+        starting_eps (float, optional): Starting epsilon exploration parameter for an eps-greedy policy. Defaults to 1..
+        network_layers (list[int], optional): The feed-forward neural network doing the learning. Defaults to [4,2].
+        episode_print_thresh (int, optional): A number denoting the number of episodes to run before printing episode count info. Defaults to 150.
+        n_episodes (int, optional): The number of episodes to use in a run. Defaults to 300.
+        buffer_size (int, optional): The memory size ((s,a,r,s)) to have of past game states. Defaults to 1000.
+        batch_size (int, optional): The batch size in SGD for learning the network. Defaults to 1.
+        update_when (int, optional): A number indicating after how many episodes to update the target network from the policy one. Defaults to 1.
+        learning_rate (int, optional): The initial learning rate to use in learning the networks. Defaults to 1.
+        decay (float, optional): The epsilon decay parameter to use. Throughout learning, eps = eps_0*decay**episode. Defaults to 0.99.
+        recordings_dir_name (str, optional): The directory to store recorded episodes - if set to be True. Defaults to 'episode_recorder'.
+        episode_base_name (str, optional): The starting file name of recorded episodes. Defaults to 'episode'.
+        record (bool, optional): A true or false value denoting whether episodes should be recorded. Defaults to False.
+        max_episode_steps (None, optional): The maximal number of steps to have per episode. If None, the openai default for the env is used. Defaults to None.
+
+    Returns:
+        _type_: _description_
+    """
     print_training_info(type, env_name, n_runs, starting_eps, n_episodes, decay, network_layers, batch_size, buffer_size, update_when)
     runs_results = []
 
     env = eval(env_name)(render_mode='rgb_array')
     
     # add other environment options here
-
-    env._max_episode_steps = max_episode_steps
+    if max_episode_steps is not None: env._max_episode_steps = max_episode_steps
     
     # loop through a run
     for run in range(n_runs):

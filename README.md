@@ -3,7 +3,7 @@ A mini RL library implementing RL learners on OpenAI environments.
 
 The current environments supported are OpenAI's [Classic Control](https://www.gymlibrary.dev/environments/classic_control/) : `CartPole`, `Acrobot`, and `MountainCar` environments.
 
-Learners supported: `DQN`, `DDQN`. Examples can be found in `usage_example.ipynb`. Switching between the two nets can be done with one function parameter change. 
+Learners supported: `DQN`, `DDQN`, `REINFORCE`. Examples can be found in `usage_example.ipynb`. Switching between the two nets can be done with one function parameter change. 
 
 This is run successfully on Python 3.10.8, with libraries used found in the `requirements.txt` file.
 

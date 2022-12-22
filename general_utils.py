@@ -2,11 +2,8 @@
 File implementing:
     `initialise_episode`: initialise an episode (pygame env instance) with a random state
     `step_episode`: Do a step according to an epsilon-greedy policy within a pygame env instance using a DQN network.
-
+    ...
 """
-
-
-
 
 import random
 from collections import deque
@@ -29,12 +26,12 @@ def initialise_episode(env):
     done, terminated, t = False, False, 0
     return state, done, terminated, t
 
-def step_episode(env, policy_net:DQN, state, eps:float, decay:float, episode:int):
+def step_episode(env, policy_net, state, eps:float, decay:float, episode:int, kind='DQN'):
     """Do a single step in an episode.
 
     Args:
         env (): An openai pygym environment instance
-        policy_net: A DQN policy network
+        policy_net: A deep neural network
         state: _description_
         eps: value of epsilon in an eps-greedy policy
         decay: A decay parameter decaying epsilon according to the episode count
@@ -43,16 +40,24 @@ def step_episode(env, policy_net:DQN, state, eps:float, decay:float, episode:int
     Returns:
         action, next_state, reward, done, terminated: Returns an action, next state, reward, and whether the episode is completed.
     """
-    from nets_utils import epsilon_greedy
+    if kind == 'REINFORCE': # a policy-based method
+        log_prob_action, action = policy_net(state)
+        observation, reward, done, terminated, _ = env.step(action)
+        reward, action = torch.tensor([reward]), torch.tensor([action])
+        next_state = torch.tensor(observation).reshape(-1).float()
+        return action, next_state, reward, done, terminated, log_prob_action
+    
+    elif kind in ['DQN', 'DDQN']: # a value-action based method
+        from nets_utils import epsilon_greedy
 
-    # determine an epsilon-greedy action
-    action = epsilon_greedy(eps*(decay**episode), policy_net, state)       
+        # determine an epsilon-greedy action
+        action = epsilon_greedy(eps*(decay**episode), policy_net, state)       
 
-    # do a step in the environment; convert values to Torch.tensor     
-    observation, reward, done, terminated, _ = env.step(action)
-    reward, action = torch.tensor([reward]), torch.tensor([action])
-    next_state = torch.tensor(observation).reshape(-1).float()
-    return action, next_state, reward, done, terminated
+        # do a step in the environment; convert values to Torch.tensor     
+        observation, reward, done, terminated, _ = env.step(action)
+        reward, action = torch.tensor([reward]), torch.tensor([action])
+        next_state = torch.tensor(observation).reshape(-1).float()
+        return action, next_state, reward, done, terminated
 
 
 class ReplayBuffer():

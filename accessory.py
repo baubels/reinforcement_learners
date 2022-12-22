@@ -1,5 +1,4 @@
 import os
-# from gym.wrappers.monitoring.video_recorder import VideoRecorder
 import matplotlib.pyplot as plt
 import torch
 import numpy as np
@@ -19,10 +18,17 @@ def print_episode_info(episode:int, n_episodes:int, episode_threshold:int=100):
         print("episode ", episode+1, "/", n_episodes)
 
 def print_training_info(name:str, env_name, n_runs, starting_eps, n_episodes, decay:float, network_layers:list[int], batch_size, buffer_size, update_when)->None:
-    print(f"TRAINING!!! A {name} agent on the {env_name} environment over {n_runs} runs each with {n_episodes} episodes.")
-    print(f"Episodes are generated with an eps-greedy policy with eps = {starting_eps}, decaying at eps*{decay}^episode_count")
-    print(f"Each policy and target DQN net has feedforward layer widths: {network_layers}.\n")
-    print(f"Backpropogation is done with SGD with batchsize {batch_size} sampled over a buffer of size {buffer_size} and updating policy network every {update_when} episodes.")
+    if name == 'REINFORCE':
+        print(f"TRAINING!!! A {name} agent on the {env_name} environment over {n_runs} runs each with {n_episodes} episodes.")
+        print(f"Episodes are generated with an on-policy algorithm.")
+        print(f"The policy net is feedforward with layer widths: {network_layers}.\n")
+        print(f"Backpropogation is done with SGD over each episodes.")
+
+    else:
+        print(f"TRAINING!!! A {name} agent on the {env_name} environment over {n_runs} runs each with {n_episodes} episodes.")
+        print(f"Episodes are generated with an eps-greedy policy with eps = {starting_eps}, decaying at eps*{decay}^episode_count")
+        print(f"Each policy and target DQN net has feedforward layer widths: {network_layers}.\n")
+        print(f"Backpropogation is done with SGD with batchsize {batch_size} sampled over a buffer of size {buffer_size} and updating policy network every {update_when} episodes.")
 
 
 class VideoRecorder:

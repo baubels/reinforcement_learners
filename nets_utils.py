@@ -2,12 +2,13 @@ import random
 import torch
 from torch import nn
 import torch.nn.functional as F
+import numpy as np
 
 
 class DQN(nn.Module):
     def __init__(self, layer_sizes:list[int], activation='F.relu'):
         """
-        DQN initialisation
+        DQN initialisation. This is just a feedforward net with relu activations.
 
         Args:
             layer_sizes: list with size of each layer as elements
@@ -29,6 +30,40 @@ class DQN(nn.Module):
             x = eval(self.activation)(layer(x))
         return x
 
+    
+class REINFORCE(nn.Module):
+    def __init__(self, layer_sizes:list[int], activation='F.relu'):
+        """
+        REINFORCE initialisation. This is just a feedforward net with relu activations.
+
+        Args:
+            layer_sizes: list with size of each layer as elements
+        """
+        self.activation = activation
+        self.layer_sizes = layer_sizes
+        super(REINFORCE, self).__init__()
+        self.layers = nn.ModuleList([nn.Linear(layer_sizes[i], layer_sizes[i+1]) for i in range(len(layer_sizes)-1)])
+    
+    def forward (self, x:torch.Tensor)->torch.Tensor:
+        """***
+        
+        Returns:
+            log_prob_action: the log probabilities of the outputs
+            action: the action probabilities (output) of the REINFORCE policy net.
+        """
+        for layer in self.layers:
+            x = eval(self.activation)(layer(x))
+        
+        actions = F.softmax(x, dim=0)
+        action = self.get_action(actions)
+        log_prob_action = torch.log(actions.squeeze(0))[action]
+        
+        return log_prob_action, action
+    
+    def get_action(self,a):
+        return np.random.choice(np.arange(self.layer_sizes[-1]), p=a.squeeze(0).detach().cpu().numpy())
+
+    
 def initialise_networks(network_layers:list[int])->None:
     """Initialise policy and target networks.
 
@@ -96,11 +131,14 @@ def update_policy(memory, policy_net:DQN, target_net:DQN, optimizer:torch.optim,
 
     Args:
         memory (ReplayBuffer): A Replay Buffer consisting of past episode steps as memory.
-        policy_net: A DQN that 
-        target_net: _description_
-        optimizer: _description_
-        network_type: _description_
-        batch_size: _description_
+        policy_net: A DQN that chiefly enabled the trajectory policy.
+        target_net: A DQN that is used as a baseline for updating the policy network.
+        optimizer: The optimizer used to apply a gradient-descent-like scheme.
+        network_type: A string, one of 'DQN' or 'DDQN'. Directly influences the loss-function used.
+        batch_size: Batch size to use for SGD. Self-explanatory.
+    
+    Returns: None
+        A parameter-updated policy network according to one step of gradient-descent (or same scheme)
     """
     if not len(memory.buffer) < batch_size:               # update only if the memory buffer is at least has batch_size number of state action values in it
         transitions = memory.sample(batch_size)           # sample
@@ -140,3 +178,28 @@ def loss(policy_dqn:DQN, target_dqn:DQN,
     
     q_values = policy_dqn(states).gather(1, actions).reshape(-1)
     return ((q_values - bellman_targets)**2).mean()
+
+def compute_discounted_returns(states:list[torch.Tensor], rewards:list[torch.Tensor], discount:float)->torch.Tensor:
+    """ Compute discounted returns of an episode.
+    
+    Args:
+        states: a list of episode-length length where each item indicates a state of an episode
+        rewards: a list of episode-length length where each item indicates a reward of an episode
+        discount: an episodic discount term
+    
+    Returns:
+        A torch.Tensor of discounted episodic returns for a completed episode.
+    """
+    discounted_rewards = []
+
+    for t in range(len(states)):
+        G, power = 0, 0
+        
+        for reward in rewards[t:]:
+            G += discount**power*reward
+            power += 1
+
+        discounted_rewards.append(G)
+
+    discounted_rewards = torch.tensor(discounted_rewards,dtype=torch.float32)
+    return (discounted_rewards - torch.mean(discounted_rewards))/ (torch.std(discounted_rewards)) # normalises returns

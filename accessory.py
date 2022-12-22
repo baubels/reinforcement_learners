@@ -230,7 +230,7 @@ def print_results(runs_results, n_episodes:int=300, ylabel='return', xlabel='epi
     plt.plot(torch.arange(n_episodes), means)
     plt.fill_between(np.arange(n_episodes), means, means+stds, alpha=0.3, color='b')
     plt.fill_between(np.arange(n_episodes), means, means-stds, alpha=0.3, color='b')
-    plt.axhline(y=100, color='r', linestyle='--')
+    # plt.axhline(y=100, color='r', linestyle='--')
     plt.ylabel(ylabel)
     plt.xlabel(xlabel)
     plt.title(title)

@@ -13,7 +13,7 @@ from gyms.mountain_car import MountainCarEnv
 
 def train_DQN(type:str='DQN', env_name:str='CartPole', n_runs:int=10, starting_eps:float=1., network_layers:list[int]=[4,2], 
         episode_print_thresh:int=150, n_episodes:int=300, buffer_size=1000, batch_size=1, update_when=1, learning_rate=1, decay=0.99,
-        recordings_dir_name:str='episode_recorder', episode_base_name:str='episode', record=False, max_episode_steps=500):
+        recordings_dir_name:str='episode_recorder', episode_base_name:str='episode', record=False, max_episode_steps=500, lengths_to_consider=1):
     """Train a DQN or DDQN pair of networks according to some pygame env instance.
 
     Args:
@@ -43,9 +43,6 @@ def train_DQN(type:str='DQN', env_name:str='CartPole', n_runs:int=10, starting_e
 
     env = eval(env_name)(render_mode='rgb_array')
     
-    # add other environment options here
-    if max_episode_steps != None: env.tags['wrapper_config.TimeLimit.max_episode_steps'] = max_episode_steps
-    
     # loop through a run
     for run in range(n_runs):
         if record: video_dir = recorder('new_run', recordings_dir_name=recordings_dir_name, run=run)   # <><><><1><><><> #
@@ -55,11 +52,12 @@ def train_DQN(type:str='DQN', env_name:str='CartPole', n_runs:int=10, starting_e
         policy_net, target_net = initialise_networks(network_layers)
         optimizer = optim.Adam(policy_net.parameters(), lr=learning_rate)          # using Adam gradient descent
         memory = ReplayBuffer(buffer_size)                                         # a replay buffer of size buffer_size
-        early_stopping=0
+        # early_stopping=0
         # loop through episodes
         episode_durations = []
         for i_episode in range(n_episodes):
-            print_episode_info(i_episode, n_episodes, episode_print_thresh)
+            print_episode_info(i_episode, n_episodes, episode_print_thresh, sum(episode_durations[-lengths_to_consider:])/lengths_to_consider)
+            # print_episode_info(i_episode, n_episodes, episode_print_thresh)
             if record: video_recorder = recorder('start_episode', episode_base_name=episode_base_name, video_dir=video_dir, env=env, i_episode=i_episode)   # <><><><2><><><> #
 
             # initialise episode starting state
@@ -86,12 +84,12 @@ def train_DQN(type:str='DQN', env_name:str='CartPole', n_runs:int=10, starting_e
             # update the target net
             update_target(target_net, policy_net, i_episode, update_when)
 
-            # early stopping if the policy is too good; this ruins some of the print functionalities
-            if episode_durations[-1] == max_episode_steps + 1:
-                early_stopping += 1
-            if early_stopping >= 10:
-                print('stopping early as the net is consistently {} achieving the maximal episode length goal of {}'.format(10, max_episode_steps+1))
-                break
+            # # early stopping if the policy is too good; this ruins some of the print functionalities
+            # if episode_durations[-1] == max_episode_steps + 1:
+            #     early_stopping += 1
+            # if early_stopping >= 10:
+            #     print('stopping early as the net is consistently {} achieving the maximal episode length goal of {}'.format(10, max_episode_steps+1))
+            #     break
 
         runs_results.append(episode_durations)
         t1 = time.time()
@@ -103,7 +101,7 @@ def train_DQN(type:str='DQN', env_name:str='CartPole', n_runs:int=10, starting_e
 
 def train_REINFORCE(env_name:str='CartPoleEnv', n_runs:int=10, starting_eps:float=1., network_layers:list[int]=[4,2], 
         episode_print_thresh:int=150, n_episodes:int=300, batch_size=1, update_when=1, learning_rate=1, decay=0.99,
-        recordings_dir_name:str='episode_recorder', episode_base_name:str='episode', record=False, max_episode_steps=500, discount:float=0.7):
+        recordings_dir_name:str='episode_recorder', episode_base_name:str='episode', record=False, max_episode_steps=500, discount:float=0.7, lengths_to_consider=1):
     """Train on some pygame env instance via REINFORCE.
 
     Args:
@@ -131,9 +129,8 @@ def train_REINFORCE(env_name:str='CartPoleEnv', n_runs:int=10, starting_eps:floa
 
     env = eval(env_name)(render_mode='rgb_array')
     
-    # add other environment options here
-    if max_episode_steps != None: env.tags['wrapper_config.TimeLimit.max_episode_steps'] = max_episode_steps
-    
+
+
     # loop through a run
     for run in range(n_runs):
         if record: video_dir = recorder('new_run', recordings_dir_name=recordings_dir_name, run=run)   # <><><><1><><><> #
@@ -147,7 +144,7 @@ def train_REINFORCE(env_name:str='CartPoleEnv', n_runs:int=10, starting_eps:floa
         # loop through episodes
         episode_durations = []
         for i_episode in range(n_episodes):
-            print_episode_info(i_episode, n_episodes, episode_print_thresh)
+            print_episode_info(i_episode, n_episodes, episode_print_thresh, sum(episode_durations[-lengths_to_consider:])/lengths_to_consider)
             if record: video_recorder = recorder('start_episode', episode_base_name=episode_base_name, video_dir=video_dir, env=env, i_episode=i_episode)   # <><><><2><><><> #
             
             states, actions, rewards, log_probs = [], [], [], []

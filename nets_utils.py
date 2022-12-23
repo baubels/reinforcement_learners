@@ -4,6 +4,10 @@ from torch import nn
 import torch.nn.functional as F
 import numpy as np
 
+def safe_log(x):
+    eps=1e-7
+    x = F.relu(x)
+    return torch.log(x+eps)
 
 class DQN(nn.Module):
     def __init__(self, layer_sizes:list[int], activation='F.relu'):
@@ -56,10 +60,31 @@ class REINFORCE(nn.Module):
         
         actions = F.softmax(x, dim=0)
         action = self.get_action(actions)
-        log_prob_action = torch.log(actions.squeeze(0))[action]
+        log_prob_action = safe_log(actions.squeeze(0))[action]
         
         return log_prob_action, action
     
+    def get_action(self,a):
+        return np.random.choice(np.arange(self.layer_sizes[-1]), p=a.squeeze(0).detach().cpu().numpy())
+
+class ACTOR_CRITIC(nn.Module):
+    def __init__(self, layer_sizes:list[int]=[4,32,2], activation='F.relu') -> None:
+        # doing actor-critic with just a single hidden layer; actors and critics sharing this layer
+        super().__init__()
+        self.activation = activation
+        self.layer_sizes = layer_sizes
+        self.layer_1 = nn.Linear(layer_sizes[0], layer_sizes[1])
+        self.actor = nn.Linear(layer_sizes[1], layer_sizes[2])
+        self.critic = nn.Linear(layer_sizes[1], 1)
+
+    def forward(self, x:torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
+        x = eval(self.activation)(self.layer_1(x))
+        actions = F.softmax(self.actor(x), dim=0)
+        action = self.get_action(actions)
+        log_prob_action = safe_log(actions.squeeze(0))[action]
+        # return action values and critic
+        return log_prob_action, action, self.critic(x)
+
     def get_action(self,a):
         return np.random.choice(np.arange(self.layer_sizes[-1]), p=a.squeeze(0).detach().cpu().numpy())
 
@@ -170,14 +195,15 @@ def loss(policy_dqn:DQN, target_dqn:DQN,
     Returns:
         Float scalar tensor with loss value
     """
-    if DDQN: 
+    if DDQN:
         q_max_vals = policy_dqn(next_states).max(1).indices.reshape([-1,1])
         bellman_targets = (~dones).reshape(-1)*target_dqn(next_states).gather(1, q_max_vals).reshape(-1) + rewards.reshape(-1)
     else:
-        bellman_targets = (~dones).reshape(-1)*(target_dqn(next_states)).max(1).values + rewards.reshape(-1)
+        bellman_targets = (~dones).reshape(-1)*(target_dqn(next_states)).max(1).values + rewards.reshape(-1) 
+                                                                 # target net uses bellmann 1-step return
     
-    q_values = policy_dqn(states).gather(1, actions).reshape(-1)
-    return ((q_values - bellman_targets)**2).mean()
+    q_values = policy_dqn(states).gather(1, actions).reshape(-1) # the policy net as the baseline
+    return ((q_values - bellman_targets)**2).mean()              # updating the target net
 
 def compute_discounted_returns(states:list[torch.Tensor], rewards:list[torch.Tensor], discount:float)->torch.Tensor:
     """ Compute discounted returns of an episode.

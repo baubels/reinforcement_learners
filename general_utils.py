@@ -31,7 +31,7 @@ def step_episode(env, policy_net, state, eps:float, decay:float, episode:int, ki
 
     Args:
         env (): An openai pygym environment instance
-        policy_net: A deep neural network
+        policy_net: A deep neural network of type `kind`
         state: _description_
         eps: value of epsilon in an eps-greedy policy
         decay: A decay parameter decaying epsilon according to the episode count
@@ -40,7 +40,14 @@ def step_episode(env, policy_net, state, eps:float, decay:float, episode:int, ki
     Returns:
         action, next_state, reward, done, terminated: Returns an action, next state, reward, and whether the episode is completed.
     """
-    if kind == 'REINFORCE': # a policy-based method
+    if kind == 'A2C': # policy-based + state-value method (acting as a baseline)
+        log_prob_action, action, value = policy_net(state)
+        observation, reward, done, terminated, _ = env.step(action)
+        reward, action = torch.tensor([reward]), torch.tensor([action])
+        next_state = torch.tensor(observation).reshape(-1).float()
+        return action, next_state, reward, done, terminated, log_prob_action, value
+
+    elif kind == 'REINFORCE': # a policy-based method
         log_prob_action, action = policy_net(state)
         observation, reward, done, terminated, _ = env.step(action)
         reward, action = torch.tensor([reward]), torch.tensor([action])

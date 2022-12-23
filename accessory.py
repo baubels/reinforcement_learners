@@ -13,12 +13,12 @@ from gym import error, logger
 
 
 
-def print_episode_info(episode:int, n_episodes:int, episode_threshold:int=100):
+def print_episode_info(episode:int, n_episodes:int, episode_threshold:int=100, episode_durations:float=None):
     if (episode+1) % episode_threshold == 0:
-        print("episode ", episode+1, "/", n_episodes)
+        print("episode ", episode+1, "/", n_episodes, '\t', 'with prior episodes having an approximate duration of: ', episode_durations)
 
 def print_training_info(name:str, env_name, n_runs, starting_eps, n_episodes, decay:float, network_layers:list[int], batch_size, buffer_size, update_when)->None:
-    if name == 'REINFORCE':
+    if name in ['REINFORCE', 'A2C']:
         print(f"TRAINING!!! A {name} agent on the {env_name} environment over {n_runs} runs each with {n_episodes} episodes.")
         print(f"Episodes are generated with an on-policy algorithm.")
         print(f"The policy net is feedforward with layer widths: {network_layers}.\n")

@@ -10,55 +10,70 @@ from collections import deque
 import torch
 import torch.nn.functional as F
 
-from nets_utils import DQN
+# from nets_utils import DQN
 
-def initialise_episode(env):
+
+def initialise_episode(env) -> tuple[torch.Tensor, bool, bool, int]:
     """Initialise an episode with random state.
 
     Args:
         env: A pygame environment instance.
 
     Returns:
-        state, done, terminated, t: Returns the initial state, and boolean values indicating completion and episode count of episode.
+        state: An initial state.
+        done: An indication on whether the environment is done (episode completion, time limit exceeded, physics, etc.)
+        terminated: A boolean indicating termination.
+        t: An int of episode count. Episodes are counted from 0.
     """
     observation, _ = env.reset()
     state = torch.tensor(observation).float()
     done, terminated, t = False, False, 0
     return state, done, terminated, t
 
-def step_episode(env, policy_net, state, eps:float, decay:float, episode:int, kind='DQN'):
+
+def step_episode(env, policy_net, state, eps: float, decay: float, episode: int, kind='DQN'):
     """Do a single step in an episode.
 
     Args:
-        env (): An openai pygym environment instance
+        env (): An OpenAI gym environment instance
         policy_net: A deep neural network of type `kind`
         state: _description_
         eps: value of epsilon in an eps-greedy policy
         decay: A decay parameter decaying epsilon according to the episode count
         episode: The episode count
+        kind: One of 'A2C', 'REINFORCE', 'DQN', 'DDQN'.
+              A change indicates change in how actions are made and output types.
 
     Returns:
-        action, next_state, reward, done, terminated: Returns an action, next state, reward, and whether the episode is completed.
+        action: An made by the agent.
+        next_state: A next state received by the agent (includes environmental noise P).
+        reward: A reward signal received for arriving at next_state.
+        done: A boolean indicating whether the environment terminated (physics, time limit, terminal state reached).
+        terminated: A boolean indicating whether the terminal state has been reached.
+        (if kind is one of 'A2C' or 'REINFORCE')
+        log_prob_action ('A2C' or 'REINFORCE'): A log probability of the action chosen. (log(action))
+        value ('A2C'):  A baseline state-value of the initial state.
     """
-    if kind == 'A2C': # policy-based + state-value method (acting as a baseline)
+
+    if kind == 'A2C':  # policy-based + state-value method (acting as a baseline)
         log_prob_action, action, value = policy_net(state)
         observation, reward, done, terminated, _ = env.step(action)
         reward, action = torch.tensor([reward]), torch.tensor([action])
         next_state = torch.tensor(observation).reshape(-1).float()
         return action, next_state, reward, done, terminated, log_prob_action, value
 
-    elif kind == 'REINFORCE': # a policy-based method
+    elif kind == 'REINFORCE':  # a policy-based method
         log_prob_action, action = policy_net(state)
         observation, reward, done, terminated, _ = env.step(action)
         reward, action = torch.tensor([reward]), torch.tensor([action])
         next_state = torch.tensor(observation).reshape(-1).float()
         return action, next_state, reward, done, terminated, log_prob_action
-    
-    elif kind in ['DQN', 'DDQN']: # a value-action based method
+
+    elif kind in ['DQN', 'DDQN']:  # a value-action based method
         from nets_utils import epsilon_greedy
 
         # determine an epsilon-greedy action
-        action = epsilon_greedy(eps*(decay**episode), policy_net, state)       
+        action = epsilon_greedy(eps * (decay ** episode), policy_net, state)
 
         # do a step in the environment; convert values to Torch.tensor     
         observation, reward, done, terminated, _ = env.step(action)
@@ -67,8 +82,8 @@ def step_episode(env, policy_net, state, eps:float, decay:float, episode:int, ki
         return action, next_state, reward, done, terminated
 
 
-class ReplayBuffer():
-    def __init__(self, size:int):
+class ReplayBuffer:
+    def __init__(self, size: int):
         """Replay buffer initialisation
 
         Args:
@@ -76,8 +91,8 @@ class ReplayBuffer():
         """
         self.size = size
         self.buffer = deque([], size)
-    
-    def push(self, transition)->list:
+
+    def push(self, transition) -> deque:
         """Push an object to the replay buffer
 
         Args:
@@ -85,11 +100,11 @@ class ReplayBuffer():
         
         Returns:
             The current memory of the buffer (any iterable object e.g. list)
-        """  
+        """
         self.buffer.append(transition)
         return self.buffer
 
-    def sample(self, batch_size:int)->list:
+    def sample(self, batch_size: int) -> list:
         """Get a random sample from the replay buffer
         
         Args:

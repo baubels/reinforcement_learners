@@ -1,4 +1,4 @@
-import os
+# import os
 import matplotlib.pyplot as plt
 import torch
 import numpy as np
@@ -12,41 +12,49 @@ from typing import List, Optional
 from gym import error, logger
 
 
+def print_episode_info(episode: int, n_episodes: int, episode_threshold: int = 100, episode_durations: float = None):
+    if (episode + 1) % episode_threshold == 0:
+        print("episode ", episode + 1, "/", n_episodes, '\t', 'with prior episodes having an approximate duration of: ',
+              episode_durations)
 
-def print_episode_info(episode:int, n_episodes:int, episode_threshold:int=100, episode_durations:float=None):
-    if (episode+1) % episode_threshold == 0:
-        print("episode ", episode+1, "/", n_episodes, '\t', 'with prior episodes having an approximate duration of: ', episode_durations)
 
-def print_training_info(name:str, env_name, n_runs, starting_eps, n_episodes, decay:float, network_layers:list[int], batch_size, buffer_size, update_when)->None:
+def print_training_info(name: str, env_name, n_runs, starting_eps, n_episodes, decay: float, network_layers: list[int],
+                        batch_size, buffer_size, update_when) -> None:
     if name in ['REINFORCE', 'A2C']:
-        print(f"TRAINING!!! A {name} agent on the {env_name} environment over {n_runs} runs each with {n_episodes} episodes.")
+        print(f"TRAINING!!! A {name} agent on the {env_name} environment over {n_runs}"
+              f" runs each with {n_episodes} episodes.")
         print(f"Episodes are generated with an on-policy algorithm.")
         print(f"The policy net is feedforward with layer widths: {network_layers}.\n")
-        print(f"Backpropogation is done with SGD over each episodes.")
+        print(f"Backpropagation is done with SGD over each episodes.")
 
     else:
-        print(f"TRAINING!!! A {name} agent on the {env_name} environment over {n_runs} runs each with {n_episodes} episodes.")
-        print(f"Episodes are generated with an eps-greedy policy with eps = {starting_eps}, decaying at eps*{decay}^episode_count")
+        print(f"TRAINING!!! A {name} agent on the {env_name} environment over {n_runs} runs "
+              f"each with {n_episodes} episodes.")
+        print(f"Episodes are generated with an eps-greedy policy with eps = {starting_eps}, "
+              f"decaying at eps*{decay}^episode_count")
         print(f"Each policy and target DQN net has feedforward layer widths: {network_layers}.\n")
-        print(f"Backpropogation is done with SGD with batchsize {batch_size} sampled over a buffer of size {buffer_size} and updating policy network every {update_when} episodes.")
+        print(f"Backpropagation is done with SGD with batch size {batch_size} sampled over "
+              f"a buffer of size {buffer_size} and updating policy network every {update_when} episodes.")
 
 
 class VideoRecorder:
     """VideoRecorder renders a nice movie of a rollout, frame by frame.
 
-    It comes with an ``enabled`` option, so you can still use the same code on episodes where you don't want to record video.
+    It comes with an ``enabled`` option, so you can still use the same code on episodes
+    where you don't want to record video.
 
     Note:
-        You are responsible for calling :meth:`close` on a created VideoRecorder, or else you may leak an encoder process.
+        You are responsible for calling :meth:`close` on a created VideoRecorder,
+        or else you may leak an encoder process.
     """
 
     def __init__(
-        self,
-        env,
-        path: Optional[str] = None,
-        metadata: Optional[dict] = None,
-        enabled: bool = True,
-        base_path: Optional[str] = None,
+            self,
+            env,
+            path: Optional[str] = None,
+            metadata: Optional[dict] = None,
+            enabled: bool = True,
+            base_path: Optional[str] = None,
     ):
         """Video recorder renders a nice movie of a rollout, frame by frame.
 
@@ -197,39 +205,54 @@ class VideoRecorder:
         # Make sure we've closed up shop when garbage collecting
         self.close()
 
-def recorder(action:str, video_recorder=None, video_dir=None, recordings_dir_name:str=None, run:int=None, episode_base_name:str=None, env=None, i_episode:int=None)->None:
+
+def recorder(action: str, video_recorder: VideoRecorder = None,
+             video_dir: str = None, recordings_dir_name: str = None,
+             run: int = None, episode_base_name: str = None, env=None,
+             i_episode: int = None):
     """Records the Agent learning according to `action`.
 
     Args:
-        action: One of 'new_run', 'start_episode', 'end_episode'. Denotes a recording done according to agent progress.
+        action: One of 'new_run', 'start_episode', 'end_episode'.
+                Denotes a recording done according to agent progress.
+        video_recorder: A VideoRecorder instance. Only needed sometimes.
+        video_dir: A str denoting the directory to store recorded video files.
+        recordings_dir_name: A str denoting the video directory name.
+        run: An integer denoting training run.
+        episode_base_name: The starting file name for recorded episodes.
+                           Each episode is subsequently saved as episode_base_name{i} for i = 0, 1, ...
+        env: An initialised open AI gym environment.
+        i_episode: The number of episode of a run. An int.
     """
     if action == 'new_run':
         cwd = os.getcwd()
         video_dir = os.path.join(cwd, recordings_dir_name + f'run_{run}')
-        if not os.path.isdir(video_dir): os.mkdir(video_dir)
+        if not os.path.isdir(video_dir):
+            os.mkdir(video_dir)
         return video_dir
 
     elif action == 'start_episode':
         # <><><><><><><> #
         video_file = os.path.join(video_dir, episode_base_name + f"{i_episode}.mp4")
-        video_recorder = VideoRecorder(env, video_file, enabled=True)  #record a video of the episode
+        video_recorder = VideoRecorder(env, video_file, enabled=True)  # record a video of the episode
         # <><><><><><><> #
         return video_recorder
-    
+
     elif action == 'end_episode':
         video_recorder.capture_frame()
         video_recorder.close()
         video_recorder.enabled = False
 
-def print_results(runs_results, n_episodes:int=300, ylabel='return', xlabel='episode', title='title'):
+
+def print_results(runs_results, n_episodes: int = 300, ylabel='return', xlabel='episode', title='title'):
     """Prints the episode value results of a trained DQN season."""
-    plt.figure(figsize=(20,5))
+    plt.figure(figsize=(20, 5))
     results = torch.tensor(runs_results)
     means = results.float().mean(0)
     stds = results.float().std(0)
     plt.plot(torch.arange(n_episodes), means)
-    plt.fill_between(np.arange(n_episodes), means, means+stds, alpha=0.3, color='b')
-    plt.fill_between(np.arange(n_episodes), means, means-stds, alpha=0.3, color='b')
+    plt.fill_between(np.arange(n_episodes), means, means + stds, alpha=0.3, color='b')
+    plt.fill_between(np.arange(n_episodes), means, means - stds, alpha=0.3, color='b')
     # plt.axhline(y=100, color='r', linestyle='--')
     plt.ylabel(ylabel)
     plt.xlabel(xlabel)
@@ -237,43 +260,43 @@ def print_results(runs_results, n_episodes:int=300, ylabel='return', xlabel='epi
     plt.show()
 
 
-def print_results_several(runs_results_list, n_episodes:int=300, ylabel='return', xlabel='episode', title='title'):
+def print_results_several(runs_results_list, n_episodes: int = 300, ylabel='return', xlabel='episode', title='title'):
     """Prints the episode value results of a 2 run sets. Includes colorbars."""
-    plt.figure(figsize=(20,5))
+    plt.figure(figsize=(20, 5))
     i = 0
     netnames = ['DQN', 'DDQN']
-    colors=['blue','red']
+    colors = ['blue', 'red']
     for runs_results in runs_results_list:
         plt.title(title)
         results = torch.tensor(runs_results)
         means = results.float().mean(0)
         stds = results.float().std(0)
-    
+
         plt.plot(torch.arange(n_episodes), means, label=netnames[i])
         plt.ylabel(ylabel)
         plt.xlabel(xlabel)
-        plt.fill_between(np.arange(n_episodes), means, means+stds, alpha=0.3,color=colors[i], label=netnames[i])
-        plt.fill_between(np.arange(n_episodes), means, means-stds, alpha=0.3,color=colors[i])
+        plt.fill_between(np.arange(n_episodes), means, means + stds, alpha=0.3, color=colors[i], label=netnames[i])
+        plt.fill_between(np.arange(n_episodes), means, means - stds, alpha=0.3, color=colors[i])
         i += 1
     plt.legend()
     plt.axhline(y=100, color='r', linestyle='--')
     plt.show()
 
 
-def print_batch(batch_runs, ylabel:str, xlabel:str, title:str, legends:list[str]):
+def print_batch(batch_runs, ylabel: str, xlabel: str, title: str, legends: list[str]):
     """Prints the results of hyperparameter tuning across different hyperparameters."""
     plt.figure(figsize=(20, 5))
     plt.title(title)
     plt.ylabel(ylabel)
     plt.xlabel(xlabel)
     plt.title(title)
-    
+
     for br in range(len(batch_runs)):
         results = torch.tensor(batch_runs[br])
         means = results.float().mean(0)
         stds = results.float().std(0)
         plt.plot(torch.arange(300), means, label=str(legends[br]))
-        plt.fill_between(np.arange(300), means, means+stds, alpha=0.1)
-        plt.fill_between(np.arange(300), means, means-stds, alpha=0.1)
+        plt.fill_between(np.arange(300), means, means + stds, alpha=0.1)
+        plt.fill_between(np.arange(300), means, means - stds, alpha=0.1)
         plt.legend()
     plt.show()

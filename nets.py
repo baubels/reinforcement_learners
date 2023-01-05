@@ -16,7 +16,7 @@ def train_dqn(net_type: str = 'DQN', env_name: str = 'CartPole', n_runs: int = 1
               buffer_size=1000, batch_size=1, update_when=1,
               learning_rate=1, decay=0.99,
               recordings_dir_name: str = 'episode_recorder',
-              episode_base_name: str = 'episode', record=False,
+              episode_base_name: str = 'episode', record: bool = False,
               max_episode_steps: int = 500,
               lengths_to_consider: int = 1) -> tuple[list[list[int]], DQN]:
     """Train a DQN or DDQN pair of networks according to some pygame env instance.

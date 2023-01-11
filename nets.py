@@ -9,6 +9,8 @@ from gyms.cartpole import CartPoleEnv
 from gyms.acrobot import AcrobotEnv
 from gyms.mountain_car import MountainCarEnv
 
+import snake
+
 
 def train_dqn(net_type: str = 'DQN', env_name: str = 'CartPole', n_runs: int = 10,
               starting_eps: float = 1., network_layers: list[int] = (4, 2),
@@ -280,13 +282,21 @@ def train_actor_critic(env_name: str = 'CartPoleEnv', n_runs: int = 10,
                         max_episode_steps, update_when)
     runs_results = []
 
-    env = eval(env_name)(render_mode='rgb_array')
+    if env_name == 'snake':
+        env = snake.Snake()
+        env.set_bot_moves()
+        env.set_window_attr(xsize=720, ysize=480)
+        env.set_snake_attr(snake_speed=1000)
+        env.set_game_attr(init_score=0, score_increment=10, game_caption='Snake!')
+
+    else:
+        env = eval(env_name)(render_mode='rgb_array')
 
     # loop through a run
     for run in range(n_runs):
         if record:
             video_dir = recorder('new_run',
-                                 recordings_dir_name=recordings_dir_name, run=run)  # <><><><1><><><> #
+                                 recordings_dir_name=recordings_dir_name, run=run)           # <><><><1><><><> #
 
         # initialise networks and update scheme
         t0 = time.time()

@@ -10,3 +10,6 @@ colab_safe_version/
 
 snake/game_copy.py
 snake/__pycache__
+
+snake/learn_snake.ipynb
+snake/play_snake.ipynb

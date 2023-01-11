@@ -18,14 +18,15 @@ class DQN(nn.Module):
         Args:
             layer_sizes: list with size of each layer as elements, includes input and output layers.
         """
+
         self.activation = activation
         super(DQN, self).__init__()
         self.layers = nn.ModuleList(
             [nn.Linear(layer_sizes[i], layer_sizes[i + 1]) for i in range(len(layer_sizes) - 1)])
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        """DQN forward pass.
-        """
+        """DQN forward pass."""
+
         for layer in self.layers:
             x = eval(self.activation)(layer(x))
         return x
@@ -39,6 +40,7 @@ class REINFORCE(nn.Module):
         Args:
             layer_sizes: list with size of each layer as elements
         """
+
         self.activation = activation
         self.layer_sizes = layer_sizes
         super(REINFORCE, self).__init__()
@@ -67,13 +69,15 @@ class REINFORCE(nn.Module):
 
 class ActorCritic(nn.Module):
     def __init__(self, layer_sizes: list[int] = (4, 32, 2), activation='F.relu') -> None:
-        # doing actor-critic with just a single hidden layer; actors and critics sharing this layer
+        # doing actor-critic using a shared starting few layers (up until the last one)
         super().__init__()
         self.activation = activation
         self.layer_sizes = layer_sizes
-        self.layer_1 = nn.Linear(layer_sizes[0], layer_sizes[1])
-        self.actor = nn.Linear(layer_sizes[1], layer_sizes[2])
-        self.critic = nn.Linear(layer_sizes[1], 1)
+        self.layers = nn.ModuleList([nn.Linear(layer_sizes[i], layer_sizes[i + 1]) 
+                                            for i in range(len(layer_sizes) - 2)])
+
+        self.actor = nn.Linear(layer_sizes[-2], layer_sizes[-1])
+        self.critic = nn.Linear(layer_sizes[-2], 1)
 
     def forward(self, x: torch.Tensor) -> tuple[torch.Tensor, np.int64, torch.Tensor]:
         """ Network forward pass.
@@ -89,11 +93,13 @@ class ActorCritic(nn.Module):
                 action: with value integer >= 0 indicating the action chosen
                 critic: a learned state value from the input found
         """
-        x = eval(self.activation)(self.layer_1(x))
-        actions = F.softmax(self.actor(x), dim=0)
+        for layer in self.layers:
+            x = eval(self.activation)(layer(x))
+
+        actions = F.softmax(self.actor(x), dim=0) # the actor acts on layer1 -> relu -> actor -> softmax (:-> actions)
         action = np.random.choice(np.arange(self.layer_sizes[-1]), p=actions.squeeze(0).detach().cpu().numpy())
         log_prob_action = safe_log(actions.squeeze(0))[action]
-        critic = self.critic(x)
+        critic = self.critic(x)                   # the critic acts on layer1 -> relu -> critic
         return log_prob_action, action, critic
 
 

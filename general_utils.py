@@ -17,7 +17,8 @@ def initialise_episode(env) -> tuple[torch.Tensor, bool, bool, int]:
     """Initialise an episode with random state.
 
     Args:
-        env: A pygame environment instance.
+        env: A playable game environment instance able to generate states, if done, terminated, and step of episode info.
+             (Note: the snake environment has been coded up to work seemlessly with this.)
 
     Returns:
         state: An initial state.
@@ -58,6 +59,7 @@ def step_episode(env, policy_net, state, eps: float, decay: float, episode: int,
     if kind == 'A2C':  # policy-based + state-value method (acting as a baseline)
         log_prob_action, action, value = policy_net(state)
         observation, reward, done, terminated, _ = env.step(action)
+        # print('observation: {}, reward: {}, done: {}'.format(observation, reward, done))
         reward, action = torch.tensor([reward]), torch.tensor([action])
         next_state = torch.tensor(observation).reshape(-1).float()
         return action, next_state, reward, done, terminated, log_prob_action, value
